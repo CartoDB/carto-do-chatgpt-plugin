@@ -3,7 +3,7 @@ import json
 import argparse
 import asyncio
 
-from models.models import Document, DocumentMetadata
+from models.models import Document, DatasetMetadata, Source
 from datastore.datastore import DataStore
 from datastore.factory import get_datastore
 from services.extract_metadata import extract_metadata_from_document
@@ -46,7 +46,7 @@ async def process_jsonl_dump(
                 continue
 
             # create a metadata object with the source, source_id, url, created_at and author
-            metadata = DocumentMetadata(
+            metadata = DatasetMetadata(
                 source=source,
                 source_id=source_id,
                 url=url,
@@ -75,7 +75,7 @@ async def process_jsonl_dump(
                     f"Text: {text}; Metadata: {str(metadata)}"
                 )
                 # get a Metadata object from the extracted metadata
-                metadata = DocumentMetadata(**extracted_metadata)
+                metadata = DatasetMetadata(**extracted_metadata)
 
             # create a document object with the id, text and metadata
             document = Document(

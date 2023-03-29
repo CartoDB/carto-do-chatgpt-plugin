@@ -5,7 +5,7 @@ import json
 import argparse
 import asyncio
 
-from models.models import Document, DocumentMetadata, Source
+from models.models import Document, DatasetMetadata, Source
 from datastore.datastore import DataStore
 from datastore.factory import get_datastore
 from services.extract_metadata import extract_metadata_from_document
@@ -41,7 +41,7 @@ async def process_file_dump(
                 print(f"extracted_text from {filepath}")
 
                 # create a metadata object with the source and source_id fields
-                metadata = DocumentMetadata(
+                metadata = DatasetMetadata(
                     source=Source.file,
                     source_id=filename,
                 )
@@ -69,7 +69,7 @@ async def process_file_dump(
                         f"Text: {extracted_text}; Metadata: {str(metadata)}"
                     )
                     # get a Metadata object from the extracted metadata
-                    metadata = DocumentMetadata(**extracted_metadata)
+                    metadata = DatasetMetadata(**extracted_metadata)
 
                 # create a document object with a random id, text and metadata
                 document = Document(

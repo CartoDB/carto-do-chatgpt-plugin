@@ -3,7 +3,9 @@ import json
 import argparse
 import asyncio
 
-from models.models import Document, DocumentMetadata
+from weaviate.util import generate_uuid5
+
+from models.models import Document, DatasetMetadata, VariableMetadata
 from datastore.datastore import DataStore
 from datastore.factory import get_datastore
 from services.extract_metadata import extract_metadata_from_document
@@ -15,6 +17,7 @@ DOCUMENT_UPSERT_BATCH_SIZE = 50
 async def process_json_dump(
     filepath: str,
     datastore: DataStore,
+    class_name: str,
     custom_metadata: dict,
     screen_for_pii: bool,
     extract_metadata: bool,
@@ -31,28 +34,45 @@ async def process_json_dump(
             print(f"Processed {len(documents)} documents")
 
         try:
-            # get the id, text, source, source_id, url, created_at and author from the item
-            # use default values if not specified
+            # Extract the metadata from the item
             id = item.get("id", None)
-            text = item.get("text", None)
-            source = item.get("source", None)
-            source_id = item.get("source_id", None)
-            url = item.get("url", None)
-            created_at = item.get("created_at", None)
-            author = item.get("author", None)
+            text = item.get("description", None)
 
             if not text:
                 print("No document text, skipping...")
                 continue
 
             # create a metadata object with the source, source_id, url, created_at and author
-            metadata = DocumentMetadata(
-                source=source,
-                source_id=source_id,
-                url=url,
-                created_at=created_at,
-                author=author,
-            )
+            if class_name == "DODataset":
+                metadata = DatasetMetadata(
+                    slug=item.get("slug", None),
+                    source="catalog",
+                    geography=item.get("geography", None),
+                    category=item.get("category", None),
+                    country=item.get("country", None),
+                    provider=item.get("provider", None),
+                    license=item.get("license", None),
+                    update_frequency=item.get("update_frequency", None),
+                    spatial_agg=item.get("spatial_agg", None),
+                    temporal_agg=item.get("temporal_agg", None),
+                    placetype=item.get("placetype", None),
+                )
+
+            elif class_name == "DOVariable":
+                metadata = VariableMetadata(
+                    slug=item.get("slug", None),
+                    column_name=item.get("column_name", None),
+                    db_type=item.get("db_type", None),
+                    dataset_id=[
+                        {
+                            "beacon": (
+                                "weaviate://localhost/DODataset/"
+                                + generate_uuid5(item["dataset_id"], "DODataset")
+                            )
+                        }
+                    ]
+                )
+
             print("metadata: ", str(metadata))
 
             # update metadata with custom values
@@ -76,7 +96,7 @@ async def process_json_dump(
                     f"Text: {text}; Metadata: {str(metadata)}"
                 )
                 # get a Metadata object from the extracted metadata
-                metadata = DocumentMetadata(**extracted_metadata)
+                metadata = DatasetMetadata(**extracted_metadata)
 
             # create a document object with the id or a random id, text and metadata
             document = Document(
@@ -94,10 +114,10 @@ async def process_json_dump(
     # us to add more descriptive logging
     for i in range(0, len(documents), DOCUMENT_UPSERT_BATCH_SIZE):
         # Get the text of the chunks in the current batch
-        batch_documents = documents[i : i + DOCUMENT_UPSERT_BATCH_SIZE]
+        batch_documents = documents[i:i + DOCUMENT_UPSERT_BATCH_SIZE]
         print(f"Upserting batch of {len(batch_documents)} documents, batch {i}")
-        print("documents: ", documents)
-        await datastore.upsert(batch_documents)
+        # print("documents: ", documents)
+        await datastore.upsert(class_name, batch_documents)
 
     # print the skipped items
     print(f"Skipped {len(skipped_items)} items due to errors or PII detection")
@@ -109,6 +129,11 @@ async def main():
     # parse the command-line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--filepath", required=True, help="The path to the json dump")
+    parser.add_argument(
+        "--class_name",
+        default="DODataset",
+        help="Name of the Weaviate class to use for the documents",
+    )
     parser.add_argument(
         "--custom_metadata",
         default="{}",
@@ -130,15 +155,17 @@ async def main():
 
     # get the arguments
     filepath = args.filepath
+    class_name = args.class_name
     custom_metadata = json.loads(args.custom_metadata)
     screen_for_pii = args.screen_for_pii
     extract_metadata = args.extract_metadata
 
     # initialize the db instance once as a global variable
     datastore = await get_datastore()
+
     # process the json dump
     await process_json_dump(
-        filepath, datastore, custom_metadata, screen_for_pii, extract_metadata
+        filepath, datastore, class_name, custom_metadata, screen_for_pii, extract_metadata
     )
 
 

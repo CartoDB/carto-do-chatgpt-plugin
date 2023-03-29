@@ -1,31 +1,54 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict
 from enum import Enum
 
 
 class Source(str, Enum):
-    email = "email"
-    file = "file"
-    chat = "chat"
+    catalog = "catalog"
 
 
 class DocumentMetadata(BaseModel):
-    source: Optional[Source] = None
-    source_id: Optional[str] = None
-    url: Optional[str] = None
-    created_at: Optional[str] = None
-    author: Optional[str] = None
+    slug: Optional[str] = None
+    source: Optional[Source] = "catalog"
 
 
-class DocumentChunkMetadata(DocumentMetadata):
+class DatasetMetadata(DocumentMetadata):
+    geography: Optional[str] = None
+    category: Optional[str] = None
+    country: Optional[str] = None
+    provider: Optional[str] = None
+    license: Optional[str] = None
+    update_frequency: Optional[str] = None
+    spatial_agg: Optional[str] = None
+    temporal_agg: Optional[str] = None
+    placetype: Optional[str] = None
+    geography: Optional[str] = None
+    variables: List[Dict[str, str]] = list()
+
+
+class VariableMetadata(DocumentMetadata):
+    column_name: Optional[str] = None
+    db_type: Optional[str] = None
+    dataset_id: Optional[List[Dict[str, str]]] = None
+
+
+class DatasetChunkMetadata(DatasetMetadata):
+    document_id: Optional[str] = None
+
+
+class VariableChunkMetadata(VariableMetadata):
     document_id: Optional[str] = None
 
 
 class DocumentChunk(BaseModel):
     id: Optional[str] = None
     text: str
-    metadata: DocumentChunkMetadata
+    metadata: DatasetChunkMetadata | VariableChunkMetadata
     embedding: Optional[List[float]] = None
+
+    class Config:
+        smart_union = True
+
 
 
 class DocumentChunkWithScore(DocumentChunk):
@@ -33,7 +56,7 @@ class DocumentChunkWithScore(DocumentChunk):
 
 
 class Document(BaseModel):
-    id: Optional[str] = None
+    id: str
     text: str
     metadata: Optional[DocumentMetadata] = None
 
@@ -45,10 +68,26 @@ class DocumentWithChunks(Document):
 class DocumentMetadataFilter(BaseModel):
     document_id: Optional[str] = None
     source: Optional[Source] = None
-    source_id: Optional[str] = None
-    author: Optional[str] = None
-    start_date: Optional[str] = None  # any date string format
-    end_date: Optional[str] = None  # any date string format
+    slug: Optional[str] = None
+
+
+class DatasetMetadataFilter(DocumentMetadataFilter):
+    geography: Optional[str] = None
+    category: Optional[str] = None
+    country: Optional[str] = None
+    provider: Optional[str] = None
+    license: Optional[str] = None
+    update_frequency: Optional[str] = None
+    spatial_agg: Optional[str] = None
+    temporal_agg: Optional[str] = None
+    placetype: Optional[str] = None
+    geography: Optional[str] = None
+
+
+class VariableMetadataFilter(DocumentMetadataFilter):
+    column_name: Optional[str] = None
+    db_type: Optional[str] = None
+    dataset_id: Optional[str] = None
 
 
 class Query(BaseModel):
