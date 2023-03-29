@@ -16,6 +16,10 @@ WORKDIR /code
 
 COPY --from=requirements-stage /tmp/requirements.txt /code/requirements.txt
 
+# FIXME: use builder stage instead of installing rustc
+ENV PATH="/root/.cargo/bin:$PATH"
+RUN apt-get update && apt-get install -y --no-install-recommends curl gcc &&  curl https://sh.rustup.rs -sSf | sh -s -- -y && apt-get install --reinstall libc6-dev -y
+
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 COPY . /code/
