@@ -13,16 +13,15 @@ class DocumentMetadata(BaseModel):
 
 
 class DatasetMetadata(DocumentMetadata):
-    geography: Optional[str] = None
+    geography: Optional[List[Dict[str, str]]] = None
     category: Optional[str] = None
     country: Optional[str] = None
     provider: Optional[str] = None
     license: Optional[str] = None
     update_frequency: Optional[str] = None
-    spatial_agg: Optional[str] = None
-    temporal_agg: Optional[str] = None
+    spatial_aggregation: Optional[str] = None
+    temporal_aggregation: Optional[str] = None
     placetype: Optional[str] = None
-    geography: Optional[str] = None
     variables: List[Dict[str, str]] = list()
 
 
@@ -50,7 +49,6 @@ class DocumentChunk(BaseModel):
         smart_union = True
 
 
-
 class DocumentChunkWithScore(DocumentChunk):
     score: float
 
@@ -72,22 +70,19 @@ class DocumentMetadataFilter(BaseModel):
 
 
 class DatasetMetadataFilter(DocumentMetadataFilter):
-    geography: Optional[str] = None
     category: Optional[str] = None
     country: Optional[str] = None
     provider: Optional[str] = None
     license: Optional[str] = None
     update_frequency: Optional[str] = None
-    spatial_agg: Optional[str] = None
-    temporal_agg: Optional[str] = None
+    spatial_aggregation: Optional[str] = None
+    temporal_aggregation: Optional[str] = None
     placetype: Optional[str] = None
-    geography: Optional[str] = None
 
 
 class VariableMetadataFilter(DocumentMetadataFilter):
     column_name: Optional[str] = None
     db_type: Optional[str] = None
-    dataset_id: Optional[str] = None
 
 
 class Query(BaseModel):

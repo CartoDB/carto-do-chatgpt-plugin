@@ -48,8 +48,8 @@ dataset_schema = {
         },
         {
             "name": "geography",
-            "dataType": ["string"],
-            "description": "The geography of the document",
+            "dataType": ["DODataset"],
+            "description": "The geography of the dataset",
         },
         {
             "name": "category",
@@ -77,12 +77,12 @@ dataset_schema = {
             "description": "The update frequency of the document",
         },
         {
-            "name": "spatial_agg",
+            "name": "spatial_aggregation",
             "dataType": ["string"],
             "description": "The spatial aggregation of the document",
         },
         {
-            "name": "temporal_agg",
+            "name": "temporal_aggregation",
             "dataType": ["string"],
             "description": "The temporal aggregation of the document",
         },

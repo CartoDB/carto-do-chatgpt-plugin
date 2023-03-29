@@ -179,8 +179,8 @@ class WeaviateDataStore(DataStore):
                             "provider",
                             "license",
                             "update_frequency",
-                            "spatial_agg",
-                            "temporal_agg",
+                            "spatial_aggregation",
+                            "temporal_aggregation",
                             "placetype"
                         ],
                     )
@@ -206,8 +206,8 @@ class WeaviateDataStore(DataStore):
                             "provider",
                             "license",
                             "update_frequency",
-                            "spatial_agg",
-                            "temporal_agg",
+                            "spatial_aggregation",
+                            "temporal_aggregation",
                             "placetype"
                         ],
                     )
@@ -237,8 +237,8 @@ class WeaviateDataStore(DataStore):
                         provider=resp["provider"] if resp["provider"] else "",
                         license=resp["license"] if resp["license"] else "",
                         update_frequency=resp["update_frequency"] if resp["update_frequency"] else "",
-                        spatial_agg=resp["spatial_agg"] if resp["spatial_agg"] else "",
-                        temporal_agg=resp["temporal_agg"] if resp["temporal_agg"] else "",
+                        spatial_aggregation=resp["spatial_aggregation"] if resp["spatial_aggregation"] else "",
+                        temporal_aggregation=resp["temporal_aggregation"] if resp["temporal_aggregation"] else "",
                         placetype=resp["placetype"] if resp["placetype"] else "",
                     ),
                 )

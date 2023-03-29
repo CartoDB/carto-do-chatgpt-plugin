@@ -47,14 +47,23 @@ async def process_json_dump(
                 metadata = DatasetMetadata(
                     slug=item.get("slug", None),
                     source="catalog",
-                    geography=item.get("geography", None),
+                    # TODO: not all geographies are yet present in the dataset
+                    geography=None,  # FIXME
+                    # geography=(
+                    #     [{
+                    #         "beacon": "weaviate://localhost/DODataset/"
+                    #         + generate_uuid5(item["geography_id"], "DODataset")
+                    #     }]
+                    #     if item.get("geography_id", None) is not None
+                    #     else None
+                    # ),
                     category=item.get("category", None),
                     country=item.get("country", None),
                     provider=item.get("provider", None),
                     license=item.get("license", None),
                     update_frequency=item.get("update_frequency", None),
-                    spatial_agg=item.get("spatial_agg", None),
-                    temporal_agg=item.get("temporal_agg", None),
+                    spatial_aggregation=item.get("spatial_aggregation", None),
+                    temporal_aggregation=item.get("temporal_aggregation", None),
                     placetype=item.get("placetype", None),
                 )
 
