@@ -2,9 +2,9 @@ import os
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, Depends, Body, UploadFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.staticfiles import StaticFiles
 
 from models.api import (
+    AskResponse,
     DeleteRequest,
     DeleteResponse,
     QueryRequest,
@@ -14,6 +14,9 @@ from models.api import (
 )
 from datastore.factory import get_datastore
 from services.file import get_document_from_file
+from server.prompt_gen import PromptGenerator
+
+import traceback
 
 bearer_scheme = HTTPBearer()
 BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
@@ -27,17 +30,6 @@ def validate_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_sc
 
 
 app = FastAPI(dependencies=[Depends(validate_token)])
-app.mount("/.well-known", StaticFiles(directory=".well-known"), name="static")
-
-# Create a sub-application, in order to access just the query endpoint in an OpenAPI schema, found at http://0.0.0.0:8000/sub/openapi.json when the app is running locally
-sub_app = FastAPI(
-    title="Retrieval Plugin API",
-    description="A retrieval API for querying and filtering documents based on natural language queries and metadata",
-    version="1.0.0",
-    servers=[{"url": "https://your-app-url.com"}],
-    dependencies=[Depends(validate_token)],
-)
-app.mount("/sub", sub_app)
 
 
 @app.post(
@@ -80,31 +72,31 @@ async def query_main(
     request: QueryRequest = Body(...),
 ):
     try:
-        results = await datastore.query(
-            request.queries,
-        )
+        results = await datastore.query(request.queries)
         return QueryResponse(results=results)
     except Exception as e:
         print("Error:", e)
         raise HTTPException(status_code=500, detail="Internal Service Error")
 
 
-@sub_app.post(
-    "/query",
-    response_model=QueryResponse,
-    # NOTE: We are describing the shape of the API endpoint input due to a current limitation in parsing arrays of objects from OpenAPI schemas. This will not be necessary in the future.
-    description="Accepts search query objects array each with query and optional filter. Break down complex questions into sub-questions. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.",
+@app.post(
+    "/ask",
+    response_model=AskResponse,
 )
-async def query(
+async def ask_main(
     request: QueryRequest = Body(...),
 ):
     try:
-        results = await datastore.query(
-            request.queries,
-        )
-        return QueryResponse(results=results)
+        contexts = await datastore.query(request.queries)
+
+        return AskResponse(results=[
+            PromptGenerator().ask(question, context, False)
+            for question, context in zip(request.queries, contexts)
+        ])
+
     except Exception as e:
         print("Error:", e)
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal Service Error")
 
 

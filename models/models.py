@@ -22,6 +22,8 @@ class DatasetMetadata(DocumentMetadata):
     spatial_aggregation: Optional[str] = None
     temporal_aggregation: Optional[str] = None
     placetype: Optional[str] = None
+    # TODO: currently works as an accident: sometimes it holds a beacon
+    # and sometimes it holds a JSON response.
     variables: List[Dict[str, str]] = list()
 
 
@@ -88,7 +90,8 @@ class VariableMetadataFilter(DocumentMetadataFilter):
 class Query(BaseModel):
     query: str
     filter: Optional[DocumentMetadataFilter] = None
-    top_k: Optional[int] = 3
+    top_k_variables: Optional[int] = 160
+    top_k_datasets: Optional[int] = 4
 
 
 class QueryWithEmbedding(Query):

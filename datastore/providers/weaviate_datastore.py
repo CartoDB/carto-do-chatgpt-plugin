@@ -154,7 +154,6 @@ class WeaviateDataStore(DataStore):
 
     async def _query(
         self,
-        class_name: str,
         queries: List[QueryWithEmbedding],
     ) -> List[QueryResult]:
         """
@@ -164,16 +163,45 @@ class WeaviateDataStore(DataStore):
         async def _single_query(query: QueryWithEmbedding) -> QueryResult:
             logger.debug(f"Query: {query.query}")
             if not hasattr(query, "filter") or not query.filter:
-                result = (
+                var_query = (
+                    self.client.query
+                    .get("DOVariable", ["document_id"])
+                    .with_hybrid(query=query.query, alpha=0.5, vector=query.embedding)
+                    .with_limit(query.top_k_variables)  # type: ignore
+                    .with_additional(["score"])
+                    .do()
+                )
+
+                top_vars = {
+                    variable["document_id"]
+                    for variable in var_query["data"]["Get"]["DOVariable"]
+                }
+
+                where_filter = {
+                    "operator": "Or",
+                    "operands": [
+                        {
+                            "path": ["variables", "DOVariable", "document_id"],
+                            "operator": "Equal",
+                            "valueString": var_id,
+                        }
+                        for var_id in top_vars
+                    ]
+                }
+
+                near_text_filter = {
+                    "concepts": [query.query],
+                }
+
+                ds_query = (
                     self.client.query.get(
-                        class_name,
+                        "DODataset",
                         [
-                            # FIXME: it will break if we change the class_name
                             "chunk_id",
                             "document_id",
                             "text",
                             "slug",
-                            "geography",
+                            # "geography",
                             "category",
                             "country",
                             "provider",
@@ -181,57 +209,45 @@ class WeaviateDataStore(DataStore):
                             "update_frequency",
                             "spatial_aggregation",
                             "temporal_aggregation",
-                            "placetype"
-                        ],
+                            "placetype",
+                            "variables { ... on DOVariable { document_id column_name db_type text} }"
+                        ]
                     )
-                    .with_hybrid(query=query.query, alpha=0.5, vector=query.embedding)
-                    .with_limit(query.top_k)  # type: ignore
-                    .with_additional(["score", "vector"])
+                    .with_where(where_filter)
+                    .with_near_text(near_text_filter)
+                    .with_limit(query.top_k_datasets)
+                    .with_additional(["score"])
                     .do()
                 )
+
+                result = ds_query["data"]["Get"]["DODataset"].copy()
+
+                for dataset in result:
+                    # Remove variables from the response
+                    dataset["variables"] = [
+                        variable for variable in dataset["variables"]
+                        if variable["document_id"] in top_vars
+                    ]
+
+                    # If there are no variables, delete the dataset altogether
+                    if len(dataset["variables"]) == 0:
+                        del dataset["variables"]
+
             else:
-                filters_ = self.build_filters(query.filter)
-                result = (
-                    self.client.query.get(
-                        class_name,
-                        [
-                            # FIXME: it will break if we change the class_name
-                            "chunk_id",
-                            "document_id",
-                            "text",
-                            "slug",
-                            "geography",
-                            "category",
-                            "country",
-                            "provider",
-                            "license",
-                            "update_frequency",
-                            "spatial_aggregation",
-                            "temporal_aggregation",
-                            "placetype"
-                        ],
-                    )
-                    .with_hybrid(query=query.query, alpha=0.5, vector=query.embedding)
-                    .with_where(filters_)
-                    .with_limit(query.top_k)  # type: ignore
-                    .with_additional(["score", "vector"])
-                    .do()
-                )
+                raise NotImplementedError
 
             query_results: List[DocumentChunkWithScore] = []
-            response = result["data"]["Get"][class_name]
 
-            for resp in response:
+            for resp in result:
                 result = DocumentChunkWithScore(
                     id=resp["chunk_id"],
                     text=resp["text"],
-                    embedding=resp["_additional"]["vector"],
+                    # embedding=resp["_additional"]["vector"],
                     score=resp["_additional"]["score"],
-                    # FIXME: this will crash and burn
                     metadata=DatasetChunkMetadata(
                         document_id=resp["document_id"] if resp["document_id"] else "",
                         slug=resp["slug"] if resp["slug"] else "",
-                        geography=resp["geography"] if resp["geography"] else "",
+                        # geography=resp["geography"] if resp["geography"] else "",
                         category=resp["category"] if resp["category"] else "",
                         country=resp["country"] if resp["country"] else "",
                         provider=resp["provider"] if resp["provider"] else "",
@@ -240,6 +256,7 @@ class WeaviateDataStore(DataStore):
                         spatial_aggregation=resp["spatial_aggregation"] if resp["spatial_aggregation"] else "",
                         temporal_aggregation=resp["temporal_aggregation"] if resp["temporal_aggregation"] else "",
                         placetype=resp["placetype"] if resp["placetype"] else "",
+                        variables=resp["variables"] if resp["variables"] else "",
                     ),
                 )
                 query_results.append(result)

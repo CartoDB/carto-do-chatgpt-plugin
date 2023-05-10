@@ -136,3 +136,5 @@ dmypy.json
 
 # macOS .DS_Store files
 .DS_Store
+
+/scripts/process_json/data

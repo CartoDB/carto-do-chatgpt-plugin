@@ -13,7 +13,7 @@ services:
       - 8080:8080
     restart: on-failure:0
     environment:
-      BEARER_TOKEN: 'no_bearer_token'
+      BEARER_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
       OPENAI_APIKEY: ${OPENAI_API_KEY}
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
@@ -28,7 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      BEARER_TOKEN: no_bearer_token
+      BEARER_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       PORT: 8081
       DATASTORE: weaviate

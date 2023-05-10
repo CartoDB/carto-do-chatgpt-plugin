@@ -20,8 +20,16 @@ class QueryRequest(BaseModel):
     queries: List[Query]
 
 
+class AskRequest(BaseModel):
+    user_input: str
+
+
 class QueryResponse(BaseModel):
     results: List[QueryResult]
+
+
+class AskResponse(BaseModel):
+    results: List[str]
 
 
 class DeleteRequest(BaseModel):
